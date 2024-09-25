@@ -9,42 +9,46 @@ app.set('views', path.join(__dirname, 'views'))
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
 
-const key = 'd9d9aceeb82d442e82280102242309';
-let city = 'Tallinn'
+const key = 'd9d9aceeb82d442e82280102242309'
+city = 'Tallinn'
 
-app.get('/', function (req, res) {
-    fetch(`http://api.weatherapi.com/v1/current.json?key=${key}&q=${city}&agi=no`)
-    .then((response) => {
-        return response.json()
-    })
-    .then((data) => {
-        let condition = data.current.condition.text
-        let city = data.location.name
-        let temp = data.current.temp_c
-        res.render('index', {
-            condition: condition,
-            city: city,
-            temp: temp
+const getWeatherDataPromise = (url) => {
+    return new Promise((resolve, reject) => {
+        fetch(url)
+        .then(response => {
+            return response.json()
+        })
+        .then(data => {
+            let condition = data.current.condition.text
+            let city = data.location.name
+            let temp = data.current.temp_c
+            let result = {
+                condition: condition,
+                city: city,
+                temp: temp
+            }
+            resolve(result) 
+        })
+        .catch(error => {
+            reject(error)
         })
     })
+} 
+
+app.all('/', function (req, res) {
+    let city
+    if(req.method == 'GET'){
+        city = 'Tartu'
+    }
+    if (req.method == 'POST') {
+        city = req.body.cityname
+    }
+    let url = `http://api.weatherapi.com/v1/current.json?key=${key}&q=${city}&agi=no`
+    getWeatherDataPromise(url)
+    .then(data => {
+        res.render('index', data)
+    }) 
 })
 
-app.post('/', function(req, res) {
-    let city = req.body.cityname
-    fetch(`http://api.weatherapi.com/v1/current.json?key=${key}&q=${city}&agi=no`)
-    .then((response) => {
-        return response.json()
-    })
-    .then((data) => {
-        let condition = data.current.condition.text
-        let city = data.location.name
-        let temp = data.current.temp_c
-        res.render('index', {
-            condition: condition,
-            city: city,
-            temp: temp
-        })
-    })
-})
 
 app.listen(3000)
